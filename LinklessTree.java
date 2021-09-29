@@ -1,25 +1,17 @@
 import java.util.Arrays;
 
 /**
- * Trees without explicit links. Notice that various fields/methods have the
- * protected modifier when normally they would/should be private. The reason is
- * that this supports whitebox testing.
- * TODO change this
- * @author Stefan Kahrs
+ * Trees without explicit links. 
+ * TODO finish this
+ * @author Stefan Kahrs, Dylan Donovan
  * @version 1
  */
-// note the constraint on A is a slight generalisation of A extends
-// Comparable<A>
-// and is generally recommended when one wants a comparison operation
-// it basically allows that the comparison op is implemented at a supertype
-// of A, instead of A itself.
-// for the assessment itself it makes no discernable difference
 @SuppressWarnings("unchecked")
 public class LinklessTree<T extends Comparable<? super T>> {
     // sizes of subtrees at that node index
-    protected int[] sizes;
+    private int[] sizes;
     // for annoying technical reason this has to be an array of objects
-    protected Object[] elems;
+    private Object[] elems;
     private int weightFactor;
 
     public LinklessTree() {
@@ -69,27 +61,27 @@ public class LinklessTree<T extends Comparable<? super T>> {
 
     // auxiliary methods to index the arrays out of bounds too
     // they may help to reduce case distinctions
-    protected T getKey(int subtree) {
+    private T getKey(int subtree) {
         if (subtree >= elems.length)
             return null; // out of bounds
         return getValue(subtree);
     }
 
-    protected int getSize(int subtree) {
+    private int getSize(int subtree) {
         if (subtree >= elems.length)
             return 0; // out of bounds
         return sizes[subtree];
     }
 
     // encapsulates the cast on the allocation
-    protected Object[] freshElemArray(int capacity) {
+    private Object[] freshElemArray(int capacity) {
         return new Object[capacity];
     }
 
     // remainder needs to be modified
 
     // find index position of val in tree, if there, or where it goes, if not there
-    protected int findIndex(T val) {
+    public int findIndex(T val) {
         int i = 0;
         for (;;) {
             if (i >= elems.length || elems[i] == null)
@@ -120,7 +112,7 @@ public class LinklessTree<T extends Comparable<? super T>> {
 
     // grow the space in which we can place the tree, so that at least one insertion
     // will succeed
-    protected void grow() {
+    private void grow() {
         elems = Arrays.copyOf(elems, elems.length << 1);
         sizes = Arrays.copyOf(sizes, sizes.length << 1);
     }
