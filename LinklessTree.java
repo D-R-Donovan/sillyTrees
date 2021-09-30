@@ -1,8 +1,8 @@
 import java.util.Arrays;
 
 /**
- * Trees without explicit links. 
- * TODO finish this
+ * Trees without explicit links. TODO finish this
+ * 
  * @author Stefan Kahrs, Dylan Donovan
  * @version 1
  */
@@ -180,39 +180,24 @@ public class LinklessTree<T extends Comparable<? super T>> {
                 // Tree with subnode sizes == 1 or 0, don't need balancing
             } else if (sizes[right] > (sizes[left] * weightFactor)) {
                 if (sizes[(2 * right + 1)] < sizes[(2 * right + 2)]) {
-                    rotateLeft(i, level);
+                    rotateLeft(i);
                 } else {
-                    rotateRight(right, level + 1);
-                    rotateLeft(i, level);
+                    rotateRight(right);
+                    rotateLeft(i);
                 }
             } else if (sizes[left] > (sizes[right] * weightFactor)) {
                 if (sizes[(2 * left + 1)] > sizes[(2 * left + 2)]) {
-                    rotateRight(i, level);
+                    rotateRight(i);
                 } else {
-                    rotateLeft(left, level + 1);
-                    rotateRight(i, level);
+                    rotateLeft(left);
+                    rotateRight(i);
                 }
             }
 
             fixTree(right, level + 1);
             fixTree(left, level + 1);
         }
-        // if ((2 * i + 2) <= elems.length) { // Go to right and left subtree if right
-        // exists
-        // fixTree(2 * i + 2, level + 1);
-        // fixTree(2 * i + 1, level + 1);
-        // if (sizes[2 * i + 1] > (sizes[2 * i + 2] + 1)) // Left subtree more than 1
-        // bigger than right
-        // rotateRight(i, level);
-        // if (sizes[2 * i + 2] > (sizes[2 * i + 1] + 1)) // Right subtree more than 1
-        // bigger than left
-        // rotateLeft(i, level);
-        // } else if ((2 * i + 1) <= elems.length) { // Go to left subtree if it exists
-        // fixTree(2 * i + 1, level + 1);
-        // if (sizes[2 * i + 1] > (sizes[2 * i + 2] + 1)) // Left subtree more than 1
-        // bigger than right
-        // rotateRight(i, level);
-        // }
+
     }
 
     /**
@@ -229,7 +214,7 @@ public class LinklessTree<T extends Comparable<? super T>> {
             return; // index out of bounds
         // no check for null nodes as we want to overwrite the nodes we are moving to
         // anyway.
-        int direction = isRightMove ? 1 : -1; 
+        int direction = isRightMove ? 1 : -1;
         elems[i + direction * relLevel] = elems[i];
         sizes[i + direction * relLevel] = sizes[i];
         moveAcross(2 * i + 1, isRightMove, relLevel + 1);
@@ -237,32 +222,70 @@ public class LinklessTree<T extends Comparable<? super T>> {
     }
 
     /**
-     * Moves the tree with root {@code i} down in a right rotate.
+     * Moves the tree with root {@code i} down and right.
      * 
      * @param i     index of the tree to be moved
-     * @param level the level of {@code i} in the tree represented by {@link #elems}
+     * @param level the level of {@code i} in the tree being moved down. <b>Should
+     *              be 0 for the first call</b>
      */
-    private void moveDownRight(int i, int level) { // TODO: !!Needs full rework, faulty logic!!
-        if (i >= elems.length)
-            grow();
-        if (elems[i] == null)
-            return; // null check
-        moveDownRight(2 * i + 1, level + 1);
+    private void moveDownRight(int i, int level) {
+        // limit is how many nodes to the left of i we want to move which increases by
+        // 2^level
+        int limit = 0B1 << level;
+        if (2 * i + 1 >= elems.length)
+            grow(); // check the biggest index for this level to move into
+
+        // This null check is a compromise. An alternative would be to call this
+        // function on every node to be moved with an "offset" parameter from the
+        // rightmost node being moved (the opposite for moveDownLeft). Then each function call would return if its index
+        // was null.
+        boolean found = false;
+        for (int j = i - limit; j < i; j++) {
+            if (elems[j] != null) {
+                found = true;
+                break;
+            }
+        }
+        if (!found) {
+            return;
+        }
+
         moveDownRight(2 * i + 2, level + 1);
-        elems[i + (int) Math.pow(2.0, (double) level + 1)] = elems[i];
-        sizes[i + (int) Math.pow(2.0, (double) level + 1)] = sizes[i]; 
+        for (int j = i - limit, offset = 0; j < i; j++, offset++) {
+            elems[2 * j + (2 + offset)] = elems[j];
+            sizes[2 * j + (2 + offset)] = sizes[j];
+        }
     }
 
-    // TODO finish documentation
+    /**
+     * Moves the tree with root {@code i} down and left.
+     * 
+     * @param i     index of the tree to be moved
+     * @param level the level of {@code i} in the tree being moved down. <b>Should
+     *              be 0 for the first call</b>
+     */
     private void moveDownLeft(int i, int level) {
-        if (i >= elems.length)
-            grow();
-        if (elems[i] == null)
-            return; // null check
-        moveDownRight(2 * i + 1, level + 1);
-        moveDownRight(2 * i + 2, level + 1);
-        elems[i + (int) Math.pow(2.0, level)] = elems[i];
-        sizes[i + (int) Math.pow(2.0, level)] = sizes[i];
+        int limit = 0B1 << level;
+        if (2 * i + 1 >= elems.length)
+            grow(); // check the biggest index for this level to move into
+
+        boolean found = false;
+        for (int j = i; j < (i + limit); j++) {
+            if (elems[j] != null) {
+                found = true;
+                break;
+            }
+        }
+
+        if (!found) {
+            return;
+        }
+
+        moveDownLeft(2 * i + 1, level + 1);
+        for (int j = i, offset = 0; j < (i + limit); j++, offset++) {
+            elems[2 * j + (1 - offset)] = elems[j];
+            sizes[2 * j + (1 - offset)] = sizes[j];
+        }
     }
 
     /**
@@ -318,9 +341,9 @@ public class LinklessTree<T extends Comparable<? super T>> {
      * @param level the level of {@code i} in the tree represented by
      *              {@link #elems}, starting at 0.
      */
-    private void rotateRight(int i, int level) {
+    private void rotateRight(int i) {
         // start by moving the group 1 nodes down
-        moveDownRight(2 * i + 2, level + 1);
+        moveDownRight(2 * i + 2, 0);
 
         // then start the rotate by moving the top node to it's right subnode
         elems[2 * i + 2] = elems[i];
@@ -340,9 +363,9 @@ public class LinklessTree<T extends Comparable<? super T>> {
         sizes[i] = sizes[2 * i + 1] + sizes[2 * i + 2] + 1;
     }
 
-    private void rotateLeft(int i, int level) {
+    private void rotateLeft(int i) {
         // start by moving the group 1 nodes down
-        moveDownLeft(2 * i + 1, level + 1);
+        moveDownLeft(2 * i + 1, 0);
 
         // then start the rotate by moving the top node to it's left subnode
         elems[2 * i + 1] = elems[i];
@@ -392,18 +415,16 @@ public class LinklessTree<T extends Comparable<? super T>> {
                 moveDownLeft(index, (int) Math.sqrt(Integer.highestOneBit(index)));
             }
             elems[index] = value;
-            
         }
         weightCheck();
         return true;
     }
 
     private void weightCheck() {
-        for (int i = 0; 2*i+2 < elems.length; i++){
-            if (sizes[i] == 0){
-                //lk
-            }
-            else if (sizes[i] != sizes[2*i+1] + sizes[2*i+2] + 1 || sizes[i] ==0)
+        for (int i = 0; 2 * i + 2 < elems.length; i++) {
+            if (sizes[i] == 0) {
+                // lk
+            } else if (sizes[i] != sizes[2 * i + 1] + sizes[2 * i + 2] + 1 || sizes[i] == 0)
                 System.out.println("i");
         }
     }
@@ -420,7 +441,7 @@ public class LinklessTree<T extends Comparable<? super T>> {
                 sizes[i] = 0;
             } else if (sizes[2 * i + 1] > sizes[2 * i + 2]) {
                 elems[i] = elems[2 * i + 1];
-                elems[2* i + 1] = null;
+                elems[2 * i + 1] = null;
                 i = (2 * i) + 1;
             } else {
                 elems[i] = elems[2 * i + 2];
