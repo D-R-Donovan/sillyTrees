@@ -1,4 +1,5 @@
 package com.d_r_d;
+
 import java.util.Arrays;
 
 /**
@@ -45,7 +46,7 @@ public class LinklessTree<T extends Comparable<? super T>> {
             sizes = new int[startSize];
             this.weightFactor = weightFactor;
         } else {
-            startSize = Integer.highestOneBit(startSize) * 2;
+            startSize = Integer.highestOneBit(startSize) << 1;
             elems = freshElemArray(startSize);
             sizes = new int[startSize];
             this.weightFactor = weightFactor;
@@ -79,8 +80,6 @@ public class LinklessTree<T extends Comparable<? super T>> {
     private Object[] freshElemArray(int capacity) {
         return new Object[capacity];
     }
-
-    // remainder needs to be modified
 
     // find index position of val in tree, if there, or where it goes, if not there
     public int findIndex(T val) {
@@ -195,7 +194,7 @@ public class LinklessTree<T extends Comparable<? super T>> {
                     rotateRight(i);
                 }
             }
-            weightCheck();
+            checkWeightAndOrder();
             fixTree(right, level + 1);
             fixTree(left, level + 1);
         }
@@ -221,8 +220,8 @@ public class LinklessTree<T extends Comparable<? super T>> {
         elems[i] = null;
         sizes[i + direction * relLevel] = sizes[i];
         sizes[i] = 0;
-        moveAcross(2 * i + 1, isRightMove, relLevel + 1);
-        moveAcross(2 * i + 2, isRightMove, relLevel + 1);
+        moveAcross(2 * i + 1, isRightMove, relLevel * 2);
+        moveAcross(2 * i + 2, isRightMove, relLevel * 2);
     }
 
     /**
@@ -291,7 +290,7 @@ public class LinklessTree<T extends Comparable<? super T>> {
         moveDownLeft(2 * i + 1, level + 1);
         for (int j = i, offset = 0; j < (i + limit); j++, offset++) {
             elems[2 * j + (1 - offset)] = elems[j];
-            sizes[2 * j + (1 - offset)] = sizes[j]; // TODO: sizes aren't dealt with correctly?
+            sizes[2 * j + (1 - offset)] = sizes[j];
         }
     }
 
@@ -301,23 +300,26 @@ public class LinklessTree<T extends Comparable<? super T>> {
      * Since each level of a BST has half the nodes of the level below it, when
      * moving a subtree up it overwrites the subtree to the right of the root.
      * 
-     * @param i     index of the node to be moved.
-     * @param level the level of the current node in the entire tree starting from
-     *              0.
+     * @param i       index of the node to be moved.
+     * @param level   the level of the current node in the entire tree starting from
+     *                0.
+     * @param hOffset the offset of the rightmost node in the subtree from the
+     *                rightmost node in the level
      */
-    private void moveUpRight(int i, int level) {
-        int offset = 0B1 << level;
+    private void moveUpRight(int i, int level, int hOffset) {
+        // TODO: both of the moveUp...() functions don't work for all cases
+        int newPos = i - (level + hOffset);
 
         if (i >= elems.length)
             return; // index out of bounds
         if (elems[i] == null)
             return; // prevent further recursion
-        elems[i - offset] = elems[i];
+        elems[newPos] = elems[i];
         elems[i] = null;
-        sizes[i - offset] = sizes[i];
+        sizes[newPos] = sizes[i];
         sizes[i] = 0;
-        moveUpRight(2 * i + 1, level + 1);
-        moveUpRight(2 * i + 2, level + 1);
+        moveUpRight(2 * i + 1, level * 2, hOffset * 2);
+        moveUpRight(2 * i + 2, level * 2, hOffset * 2);
     }
 
     /**
@@ -326,23 +328,25 @@ public class LinklessTree<T extends Comparable<? super T>> {
      * Since each level of a BST has half the nodes of the level below it, when
      * moving a subtree up it overwrites the subtree to the left of the root.
      * 
-     * @param i     index of the node to be moved.
-     * @param level the level of the current node in the entire tree starting from
-     *              0.
+     * @param i       index of the node to be moved.
+     * @param level   the level of the current node in the entire tree starting from
+     *                0.
+     * @param hOffset the offset of the rightmost node in the subtree from the
+     *                rightmost node in the level
      */
-    private void moveUpLeft(int i, int level) {
-        int offset = 0B1 << (level + 1);
+    private void moveUpLeft(int i, int level, int hOffset) {
+        int newPos = i - (level - hOffset);
 
         if (i >= elems.length)
             return; // index out of bounds
         if (elems[i] == null)
             return; // prevent further recursion
-        elems[i - offset] = elems[i];
+        elems[newPos] = elems[i];
         elems[i] = null;
-        sizes[i - offset] = sizes[i];
+        sizes[newPos] = sizes[i];
         sizes[i] = 0;
-        moveUpLeft(2 * i + 1, level + 1);
-        moveUpLeft(2 * i + 2, level + 1);
+        moveUpLeft(2 * i + 1, level * 2, hOffset * 2);
+        moveUpLeft(2 * i + 2, level * 2, hOffset * 2);
     }
 
     /**
@@ -366,7 +370,10 @@ public class LinklessTree<T extends Comparable<? super T>> {
         elems[i] = elems[2 * i + 1];
 
         // then move group 3 up
-        moveUpRight(4 * i + 3, 0);
+        int level = Integer.highestOneBit(4 * i + 4);
+        int endOfLevel = (level << 1) - 2;
+        int hOffset = endOfLevel - (4 * i + 3);
+        moveUpRight(4 * i + 3, level >> 1, hOffset);
 
         // finish by finding the new sizes of the rotated nodes
         sizes[2 * i + 1] = sizes[4 * i + 3] + sizes[4 * i + 4] + 1;
@@ -388,7 +395,11 @@ public class LinklessTree<T extends Comparable<? super T>> {
         elems[i] = elems[2 * i + 2];
 
         // then move group 3 up
-        moveUpLeft(4 * i + 6, 0);
+        int level = Integer.highestOneBit(4 * i + 7);
+        int endOfLevel = (level << 1) - 2;
+        int hOffset = endOfLevel - (4 * i + 6);
+
+        moveUpLeft(4 * i + 6, level, hOffset);
 
         // finish by finding the new sizes of the rotated nodes
         sizes[2 * i + 1] = sizes[4 * i + 3] + sizes[4 * i + 4] + 1;
@@ -427,16 +438,21 @@ public class LinklessTree<T extends Comparable<? super T>> {
             }
             elems[index] = value;
         }
-        weightCheck();
+        checkWeightAndOrder();
         return true;
     }
 
-    private void weightCheck() {
+    private void checkWeightAndOrder() {
         for (int i = 0; 2 * i + 2 < elems.length; i++) {
             if (sizes[i] == 0) {
                 // lk
-            } else if (sizes[i] != sizes[2 * i + 1] + sizes[2 * i + 2] + 1 || sizes[i] == 0)
-                System.out.println("i");
+            } else if (sizes[i] != sizes[2 * i + 1] + sizes[2 * i + 2] + 1 || sizes[i] == 0) {
+                System.out.println(i);
+            } else if (elems[2 * i + 1] != null && ((T) elems[i]).compareTo((T) elems[2 * i + 1]) == 0) {
+                System.out.println(i);
+            } else if (elems[2 * i + 2] != null && ((T) elems[i]).compareTo((T) elems[2 * i + 2]) == 0) {
+                System.out.println(i);
+            }
         }
     }
 

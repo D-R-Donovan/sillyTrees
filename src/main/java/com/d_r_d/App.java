@@ -7,7 +7,7 @@ package com.d_r_d;
 public class App 
 {
     public static void main(String[] args){
-        LinklessTree<Integer> tree = new LinklessTree<>(17);
+        LinklessTree<Integer> tree = new LinklessTree<>();
         for (int i = 0; i < 100; i++) {
             tree.insert(i);
         }
